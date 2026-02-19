@@ -1,5 +1,9 @@
 # Bitbucket Cloud MCP Server
 
+[![CI](https://github.com/or2ooo/bitbucket-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/or2ooo/bitbucket-mcp/actions/workflows/ci.yml)
+[![npm](https://img.shields.io/npm/v/@or2ooo/bitbucket-mcp)](https://www.npmjs.com/package/@or2ooo/bitbucket-mcp)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 A Model Context Protocol (MCP) server for the Bitbucket Cloud REST API v2.0, designed for Claude Code integration. Provides 26 tools across 5 toolsets with safety controls and compact LLM-optimized output.
 
 ## Setup
@@ -146,6 +150,14 @@ npm test         # Run tests
 npm run lint     # Lint
 npm run build    # Compile
 ```
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup and guidelines.
+
+## Security
+
+See [SECURITY.md](SECURITY.md) for reporting vulnerabilities.
 
 ## License
 
