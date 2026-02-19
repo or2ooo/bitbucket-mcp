@@ -1,7 +1,7 @@
 {
   "name": "@or2ooo/bitbucket-mcp",
   "version": "0.0.0-development",
-  "description": "MCP server for Bitbucket Cloud REST API v2.0",
+  "description": "MCP server for Bitbucket Cloud REST API — works with any MCP client",
   "type": "module",
   "main": "dist/index.js",
   "bin": {
