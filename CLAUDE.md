@@ -57,8 +57,8 @@ claude mcp add bitbucket \
   -e ATLASSIAN_USER_EMAIL=your-email@example.com \
   -e ATLASSIAN_API_TOKEN=your-api-token \
   -e BITBUCKET_DEFAULT_WORKSPACE=your-workspace \
-  -e BITBUCKET_READONLY=true \
-  -- npx -y github:or2ooo/bitbucket-mcp
+  -e BITBUCKET_READONLY=false \
+  -- npx -y @or2ooo/bitbucket-mcp@latest
 ```
 
 For local development, use the absolute path instead:
