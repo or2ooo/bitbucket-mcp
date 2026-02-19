@@ -7,7 +7,36 @@ A Model Context Protocol (MCP) server for the Bitbucket Cloud REST API v2.0, des
 ### Prerequisites
 
 - Node.js v24+
-- Atlassian API token ([create one here](https://id.atlassian.com/manage-profile/security/api-tokens))
+- Atlassian API token (see below)
+
+### Create an API Token
+
+1. Go to [Atlassian API Tokens](https://id.atlassian.com/manage-profile/security/api-tokens)
+2. Click **"Create API token with scopes"**
+3. Name the token (e.g., "Bitbucket MCP") and set expiration
+4. Select app: **Bitbucket**
+5. Enable the scopes listed below
+6. Click **Create** and copy the token
+
+**Read-only scopes** (6 scopes — sufficient when using `BITBUCKET_READONLY=true`):
+
+| Scope | Enables |
+|-------|---------|
+| `read:user:bitbucket` | `bb_whoami` |
+| `read:workspace:bitbucket` | `bb_list_workspaces` |
+| `read:repository:bitbucket` | `bb_list_repositories`, `bb_get_repository`, `bb_list_branches`, `bb_list_commits`, `bb_get_file` |
+| `read:pullrequest:bitbucket` | `bb_list_pull_requests`, `bb_get_pull_request`, `bb_get_pull_request_diff`, `bb_get_pull_request_diffstat`, `bb_list_pull_request_activity` |
+| `read:issue:bitbucket` | `bb_list_issues`, `bb_get_issue` |
+| `read:pipeline:bitbucket` | `bb_list_pipelines`, `bb_get_pipeline` |
+
+**Write scopes** (add these 4 for full access):
+
+| Scope | Enables |
+|-------|---------|
+| `write:repository:bitbucket` | `bb_create_commit_files` |
+| `write:pullrequest:bitbucket` | `bb_create_pull_request`, `bb_add_pull_request_comment`, `bb_approve_pull_request`, `bb_request_changes_pull_request`, `bb_merge_pull_request`, `bb_decline_pull_request` |
+| `write:issue:bitbucket` | `bb_create_issue`, `bb_comment_issue` |
+| `write:pipeline:bitbucket` | `bb_trigger_pipeline` |
 
 ### Install & Build
 
@@ -37,7 +66,7 @@ claude mcp list
 | Variable | Required | Description |
 |----------|----------|-------------|
 | `ATLASSIAN_USER_EMAIL` | Yes | Atlassian account email |
-| `ATLASSIAN_API_TOKEN` | Yes | [Atlassian API token](https://id.atlassian.com/manage-profile/security/api-tokens) |
+| `ATLASSIAN_API_TOKEN` | Yes | Atlassian API token (see [Create an API Token](#create-an-api-token)) |
 | `BITBUCKET_DEFAULT_WORKSPACE` | No | Default workspace slug |
 | `BITBUCKET_ALLOWED_WORKSPACES` | No | Comma-separated allowlist of workspace slugs |
 | `BITBUCKET_ALLOWED_REPOS` | No | Comma-separated allowlist (`slug` or `workspace/slug`) |
