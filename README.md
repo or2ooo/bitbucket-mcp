@@ -46,7 +46,6 @@ One command — no clone or build needed:
 claude mcp add bitbucket \
   -e ATLASSIAN_USER_EMAIL=your-email@example.com \
   -e ATLASSIAN_API_TOKEN=your-api-token \
-  -e BITBUCKET_DEFAULT_WORKSPACE=your-workspace \
   -e BITBUCKET_READONLY=false \
   -- npx -y @or2ooo/bitbucket-mcp@latest
 ```
@@ -67,7 +66,6 @@ npm install && npm run build
 claude mcp add bitbucket \
   -e ATLASSIAN_USER_EMAIL=your-email@example.com \
   -e ATLASSIAN_API_TOKEN=your-api-token \
-  -e BITBUCKET_DEFAULT_WORKSPACE=your-workspace \
   -e BITBUCKET_READONLY=true \
   -- node $(pwd)/dist/index.js
 ```
