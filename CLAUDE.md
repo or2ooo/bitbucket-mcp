@@ -1,6 +1,6 @@
 # Bitbucket Cloud MCP Server
 
-MCP server providing Claude Code integration with Bitbucket Cloud REST API v2.0.
+MCP server for Bitbucket Cloud REST API v2.0. Works with any MCP client.
 
 ## Quick Reference
 

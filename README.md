@@ -4,7 +4,7 @@
 [![npm](https://img.shields.io/npm/v/@or2ooo/bitbucket-mcp)](https://www.npmjs.com/package/@or2ooo/bitbucket-mcp)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-A Model Context Protocol (MCP) server for the Bitbucket Cloud REST API v2.0, designed for Claude Code integration. Provides 26 tools across 5 toolsets with safety controls and compact LLM-optimized output.
+A Model Context Protocol (MCP) server for the Bitbucket Cloud REST API v2.0. Works with any MCP client — Claude Code, GitHub Copilot, OpenAI Codex, and more. Provides 26 tools across 5 toolsets with safety controls and compact LLM-optimized output.
 
 ## Setup
 
@@ -42,7 +42,10 @@ A Model Context Protocol (MCP) server for the Bitbucket Cloud REST API v2.0, des
 | `write:issue:bitbucket` | `bb_create_issue`, `bb_comment_issue` |
 | `write:pipeline:bitbucket` | `bb_trigger_pipeline` |
 
-### Add to Claude Code
+### Add to Your MCP Client
+
+<details open>
+<summary><strong>Claude Code</strong></summary>
 
 One command — no clone or build needed:
 
@@ -59,8 +62,48 @@ Verify with:
 claude mcp list
 ```
 
+</details>
+
 <details>
-<summary>From source (for development)</summary>
+<summary><strong>GitHub Copilot (VS Code)</strong></summary>
+
+Add to `.vscode/mcp.json` in your project root:
+
+```json
+{
+  "servers": {
+    "bitbucket": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@or2ooo/bitbucket-mcp@latest"],
+      "env": {
+        "ATLASSIAN_USER_EMAIL": "your-email@example.com",
+        "ATLASSIAN_API_TOKEN": "your-api-token",
+        "BITBUCKET_READONLY": "false"
+      }
+    }
+  }
+}
+```
+
+</details>
+
+<details>
+<summary><strong>OpenAI Codex CLI</strong></summary>
+
+Add to `~/.codex/config.toml`:
+
+```toml
+[mcp_servers.bitbucket]
+command = "npx"
+args = ["-y", "@or2ooo/bitbucket-mcp@latest"]
+env = { ATLASSIAN_USER_EMAIL = "your-email@example.com", ATLASSIAN_API_TOKEN = "your-api-token", BITBUCKET_READONLY = "false" }
+```
+
+</details>
+
+<details>
+<summary><strong>From source (for development)</strong></summary>
 
 ```bash
 git clone https://github.com/or2ooo/bitbucket-mcp.git

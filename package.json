@@ -40,10 +40,11 @@
   "keywords": [
     "mcp",
     "bitbucket",
-    "claude-code",
     "model-context-protocol",
     "bitbucket-cloud",
-    "atlassian"
+    "atlassian",
+    "copilot",
+    "codex"
   ],
   "devDependencies": {
     "@eslint/js": "^9.21.0",
