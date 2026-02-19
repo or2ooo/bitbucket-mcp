@@ -58,5 +58,14 @@ claude mcp add bitbucket \
   -e ATLASSIAN_API_TOKEN=your-api-token \
   -e BITBUCKET_DEFAULT_WORKSPACE=your-workspace \
   -e BITBUCKET_READONLY=true \
+  -- npx -y github:or2ooo/bitbucket-mcp
+```
+
+For local development, use the absolute path instead:
+```bash
+claude mcp add bitbucket \
+  -e ATLASSIAN_USER_EMAIL=your-email@example.com \
+  -e ATLASSIAN_API_TOKEN=your-api-token \
+  -e BITBUCKET_DEFAULT_WORKSPACE=your-workspace \
   -- node /absolute/path/to/bitbucket-mcp/dist/index.js
 ```

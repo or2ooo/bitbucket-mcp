@@ -4,10 +4,14 @@
   "description": "MCP server for Bitbucket Cloud REST API v2.0",
   "type": "module",
   "main": "dist/index.js",
+  "bin": {
+    "bitbucket-mcp": "./dist/index.js"
+  },
   "engines": {
     "node": ">=24.0.0"
   },
   "scripts": {
+    "prepare": "tsc",
     "build": "tsc",
     "start": "node dist/index.js",
     "test": "vitest run",

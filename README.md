@@ -38,14 +38,9 @@ A Model Context Protocol (MCP) server for the Bitbucket Cloud REST API v2.0, des
 | `write:issue:bitbucket` | `bb_create_issue`, `bb_comment_issue` |
 | `write:pipeline:bitbucket` | `bb_trigger_pipeline` |
 
-### Install & Build
+### Add to Claude Code
 
-```bash
-npm install
-npm run build
-```
-
-### Claude Code Registration
+One command — no clone or build needed:
 
 ```bash
 claude mcp add bitbucket \
@@ -53,13 +48,31 @@ claude mcp add bitbucket \
   -e ATLASSIAN_API_TOKEN=your-api-token \
   -e BITBUCKET_DEFAULT_WORKSPACE=your-workspace \
   -e BITBUCKET_READONLY=true \
-  -- node /absolute/path/to/bitbucket-mcp/dist/index.js
+  -- npx -y github:or2ooo/bitbucket-mcp
 ```
 
 Verify with:
 ```bash
 claude mcp list
 ```
+
+<details>
+<summary>From source (for development)</summary>
+
+```bash
+git clone https://github.com/or2ooo/bitbucket-mcp.git
+cd bitbucket-mcp
+npm install && npm run build
+
+claude mcp add bitbucket \
+  -e ATLASSIAN_USER_EMAIL=your-email@example.com \
+  -e ATLASSIAN_API_TOKEN=your-api-token \
+  -e BITBUCKET_DEFAULT_WORKSPACE=your-workspace \
+  -e BITBUCKET_READONLY=true \
+  -- node $(pwd)/dist/index.js
+```
+
+</details>
 
 ## Environment Variables
 
