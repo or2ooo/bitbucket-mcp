@@ -174,6 +174,25 @@ export interface IssueComment {
   type: string;
 }
 
+export interface DirectoryEntry {
+  path: string;
+  type: string; // "commit_directory" or "commit_file"
+  size?: number;
+}
+
+export interface CodeSearchResult {
+  type: string;
+  content_match_count: number;
+  content_matches: Array<{
+    lines: Array<{
+      line: number;
+      segments: Array<{ text: string; match?: boolean }>;
+    }>;
+  }>;
+  path_matches: Array<{ text: string; match?: boolean }>;
+  file: { path: string; type: string; links?: Links };
+}
+
 export interface PipelineTarget {
   ref_type?: string;
   ref_name?: string;

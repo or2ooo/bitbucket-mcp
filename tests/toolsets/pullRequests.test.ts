@@ -287,6 +287,31 @@ describe("Pull Request API calls via BitbucketClient", () => {
     expect(result.id).toBe(15);
   });
 
+  it("adds a threaded reply comment with parent_id", async () => {
+    const comment = makeComment({
+      id: 17,
+      parent: { id: 10 },
+    });
+    mswServer.use(
+      http.post(
+        `${BASE_URL}/repositories/test-workspace/my-repo/pullrequests/1/comments`,
+        async ({ request }) => {
+          const body = (await request.json()) as Record<string, unknown>;
+          expect(body.content).toEqual({ raw: "Thanks, fixed!" });
+          expect(body.parent).toEqual({ id: 10 });
+          return HttpResponse.json(comment);
+        }
+      )
+    );
+
+    const result = await client.post<PullRequestComment>(
+      "/repositories/test-workspace/my-repo/pullrequests/1/comments",
+      { content: { raw: "Thanks, fixed!" }, parent: { id: 10 } }
+    );
+    expect(result.id).toBe(17);
+    expect(result.parent?.id).toBe(10);
+  });
+
   it("adds an inline comment with path and line", async () => {
     const comment = makeComment({
       id: 16,
@@ -365,6 +390,55 @@ describe("Pull Request API calls via BitbucketClient", () => {
       }
     );
     expect(result.state).toBe("MERGED");
+  });
+
+  it("updates a pull request with title, description, and reviewers", async () => {
+    const updated = makePR({ id: 1, title: "Updated Title", description: "New desc" });
+    mswServer.use(
+      http.put(
+        `${BASE_URL}/repositories/test-workspace/my-repo/pullrequests/1`,
+        async ({ request }) => {
+          const body = (await request.json()) as Record<string, unknown>;
+          expect(body.title).toBe("Updated Title");
+          expect(body.description).toBe("New desc");
+          expect(body.reviewers).toEqual([{ uuid: "{rev-1}" }]);
+          return HttpResponse.json(updated);
+        }
+      )
+    );
+
+    const result = await client.put<PullRequest>(
+      "/repositories/test-workspace/my-repo/pullrequests/1",
+      {
+        title: "Updated Title",
+        description: "New desc",
+        reviewers: [{ uuid: "{rev-1}" }],
+      }
+    );
+    expect(result.id).toBe(1);
+    expect(result.title).toBe("Updated Title");
+  });
+
+  it("updates a pull request with partial fields", async () => {
+    const updated = makePR({ id: 2, title: "Only Title Changed" });
+    mswServer.use(
+      http.put(
+        `${BASE_URL}/repositories/test-workspace/my-repo/pullrequests/2`,
+        async ({ request }) => {
+          const body = (await request.json()) as Record<string, unknown>;
+          expect(body.title).toBe("Only Title Changed");
+          expect(body).not.toHaveProperty("description");
+          expect(body).not.toHaveProperty("reviewers");
+          return HttpResponse.json(updated);
+        }
+      )
+    );
+
+    const result = await client.put<PullRequest>(
+      "/repositories/test-workspace/my-repo/pullrequests/2",
+      { title: "Only Title Changed" }
+    );
+    expect(result.title).toBe("Only Title Changed");
   });
 
   it("declines a pull request", async () => {

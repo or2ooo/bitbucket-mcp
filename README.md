@@ -4,7 +4,7 @@
 [![npm](https://img.shields.io/npm/v/@or2ooo/bitbucket-mcp)](https://www.npmjs.com/package/@or2ooo/bitbucket-mcp)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-A Model Context Protocol (MCP) server for the Bitbucket Cloud REST API v2.0. Works with any MCP client — Claude Code, GitHub Copilot, OpenAI Codex, and more. Provides 26 tools across 5 toolsets with safety controls and compact LLM-optimized output.
+A Model Context Protocol (MCP) server for the Bitbucket Cloud REST API v2.0. Works with any MCP client — Claude Code, GitHub Copilot, OpenAI Codex, and more. Provides 32 tools across 5 toolsets with safety controls and compact LLM-optimized output.
 
 ## Setup
 
@@ -28,7 +28,7 @@ A Model Context Protocol (MCP) server for the Bitbucket Cloud REST API v2.0. Wor
 |-------|---------|
 | `read:user:bitbucket` | `bb_whoami` |
 | `read:workspace:bitbucket` | `bb_list_workspaces` |
-| `read:repository:bitbucket` | `bb_list_repositories`, `bb_get_repository`, `bb_list_branches`, `bb_list_commits`, `bb_get_file` |
+| `read:repository:bitbucket` | `bb_list_repositories`, `bb_get_repository`, `bb_list_branches`, `bb_list_commits`, `bb_get_file`, `bb_list_directory`, `bb_search_code` |
 | `read:pullrequest:bitbucket` | `bb_list_pull_requests`, `bb_get_pull_request`, `bb_get_pull_request_diff`, `bb_get_pull_request_diffstat`, `bb_list_pull_request_activity` |
 | `read:issue:bitbucket` | `bb_list_issues`, `bb_get_issue` |
 | `read:pipeline:bitbucket` | `bb_list_pipelines`, `bb_get_pipeline` |
@@ -37,8 +37,8 @@ A Model Context Protocol (MCP) server for the Bitbucket Cloud REST API v2.0. Wor
 
 | Scope | Enables |
 |-------|---------|
-| `write:repository:bitbucket` | `bb_create_commit_files` |
-| `write:pullrequest:bitbucket` | `bb_create_pull_request`, `bb_add_pull_request_comment`, `bb_approve_pull_request`, `bb_request_changes_pull_request`, `bb_merge_pull_request`, `bb_decline_pull_request` |
+| `write:repository:bitbucket` | `bb_create_commit_files`, `bb_create_branch`, `bb_delete_branch` |
+| `write:pullrequest:bitbucket` | `bb_create_pull_request`, `bb_update_pull_request`, `bb_add_pull_request_comment`, `bb_approve_pull_request`, `bb_request_changes_pull_request`, `bb_merge_pull_request`, `bb_decline_pull_request` |
 | `write:issue:bitbucket` | `bb_create_issue`, `bb_comment_issue` |
 | `write:pipeline:bitbucket` | `bb_trigger_pipeline` |
 
@@ -136,7 +136,7 @@ claude mcp add bitbucket \
 - **Readonly mode**: Set `BITBUCKET_READONLY=true` to prevent any write operations.
 - **Workspace allowlist**: Restrict access to specific workspaces.
 - **Repository allowlist**: Restrict access to specific repositories.
-- **Destructive action confirmation**: Merge and decline PR tools require explicit `confirm: true`.
+- **Destructive action confirmation**: Merge PR, decline PR, and delete branch tools require explicit `confirm: true`.
 
 ## Tool Reference
 
@@ -146,7 +146,7 @@ claude mcp add bitbucket \
 | `bb_whoami` | Get current authenticated user |
 | `bb_list_workspaces` | List accessible workspaces |
 
-### Repositories (6 tools)
+### Repositories (10 tools)
 | Tool | Description |
 |------|-------------|
 | `bb_list_repositories` | List repositories in a workspace |
@@ -155,13 +155,18 @@ claude mcp add bitbucket \
 | `bb_list_commits` | List commits (optionally for a branch/tag) |
 | `bb_get_file` | Get file content at a specific revision |
 | `bb_create_commit_files` | Create a commit with file changes (write) |
+| `bb_create_branch` | Create a new branch (write) |
+| `bb_delete_branch` | Delete a branch (destructive, requires confirm) |
+| `bb_list_directory` | List directory contents at a specific revision |
+| `bb_search_code` | Search for code in a workspace or repository |
 
-### Pull Requests (11 tools)
+### Pull Requests (12 tools)
 | Tool | Description |
 |------|-------------|
 | `bb_list_pull_requests` | List PRs with optional state filter |
 | `bb_get_pull_request` | Get PR details |
 | `bb_create_pull_request` | Create a new PR (write) |
+| `bb_update_pull_request` | Update PR title, description, or reviewers (write) |
 | `bb_get_pull_request_diff` | Get PR diff (raw text) |
 | `bb_get_pull_request_diffstat` | Get PR diffstat summary |
 | `bb_list_pull_request_activity` | List PR activity (comments, approvals, updates) |
