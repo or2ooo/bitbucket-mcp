@@ -8,18 +8,26 @@ import type {
   Branch,
   Commit,
   PaginatedResponse,
+  DirectoryEntry,
+  CodeSearchResult,
 } from "../../src/bitbucket/types.js";
 import {
   formatRepositoryList,
   formatRepository,
+  formatBranch,
   formatBranchList,
   formatCommitList,
+  formatDirectoryEntry,
+  formatDirectoryListing,
+  formatCodeSearchResult,
+  formatCodeSearchResults,
 } from "../../src/formatting.js";
 import {
   resolveWorkspace,
   assertWorkspaceAllowed,
   assertRepoAllowed,
   assertNotReadonly,
+  assertConfirmed,
 } from "../../src/safety.js";
 
 const BASE_URL = "https://api.bitbucket.org/2.0";
@@ -379,6 +387,244 @@ describe("repo tools", () => {
       expect(capturedBody!.get("author")).toBe(
         "Custom Author <author@example.com>"
       );
+    });
+  });
+
+  describe("bb_create_branch", () => {
+    it("creates a branch with name and target hash", async () => {
+      const newBranch: Branch = {
+        name: "feature/new-branch",
+        target: mockCommit,
+        type: "branch",
+      };
+      mswServer.use(
+        http.post(
+          `${BASE_URL}/repositories/test-workspace/my-repo/refs/branches`,
+          async ({ request }) => {
+            const body = (await request.json()) as Record<string, unknown>;
+            expect(body.name).toBe("feature/new-branch");
+            expect(body.target).toEqual({ hash: "abc123" });
+            return HttpResponse.json(newBranch);
+          }
+        )
+      );
+
+      const client = new BitbucketClient(mockConfig);
+      const result = await client.post<Branch>(
+        "/repositories/test-workspace/my-repo/refs/branches",
+        { name: "feature/new-branch", target: { hash: "abc123" } }
+      );
+
+      expect(result.name).toBe("feature/new-branch");
+      const formatted = formatBranch(result);
+      expect(formatted).toContain("feature/new-branch");
+      expect(formatted).toContain("abc123def456");
+    });
+  });
+
+  describe("bb_delete_branch", () => {
+    it("deletes a branch", async () => {
+      mswServer.use(
+        http.delete(
+          `${BASE_URL}/repositories/test-workspace/my-repo/refs/branches/feature%2Fold-branch`,
+          () => new HttpResponse(null, { status: 204 })
+        )
+      );
+
+      const client = new BitbucketClient(mockConfig);
+      await client.del(
+        "/repositories/test-workspace/my-repo/refs/branches/feature%2Fold-branch"
+      );
+    });
+
+    it("assertConfirmed blocks unconfirmed delete", () => {
+      expect(() => assertConfirmed(false, "delete branch")).toThrow(
+        'Destructive action "delete branch" requires explicit confirmation'
+      );
+    });
+
+    it("assertConfirmed passes when confirmed", () => {
+      expect(() => assertConfirmed(true, "delete branch")).not.toThrow();
+    });
+  });
+
+  describe("bb_list_directory", () => {
+    it("returns formatted directory listing", async () => {
+      const entries: DirectoryEntry[] = [
+        { path: "src", type: "commit_directory" },
+        { path: "README.md", type: "commit_file", size: 1024 },
+        { path: "package.json", type: "commit_file", size: 512 },
+      ];
+      mswServer.use(
+        http.get(
+          `${BASE_URL}/repositories/test-workspace/my-repo/src/HEAD`,
+          () =>
+            HttpResponse.json({
+              values: entries,
+              page: 1,
+              size: 3,
+              pagelen: 10,
+            } satisfies PaginatedResponse<DirectoryEntry>)
+        )
+      );
+
+      const client = new BitbucketClient(mockConfig);
+      const result = await client.get<PaginatedResponse<DirectoryEntry>>(
+        "/repositories/test-workspace/my-repo/src/HEAD"
+      );
+
+      expect(result.values).toHaveLength(3);
+      const formatted = formatDirectoryListing(result.values);
+      expect(formatted).toContain("[dir] src");
+      expect(formatted).toContain("[file] README.md (1024 bytes)");
+      expect(formatted).toContain("[file] package.json (512 bytes)");
+    });
+
+    it("returns formatted directory listing for subdirectory", async () => {
+      const entries: DirectoryEntry[] = [
+        { path: "src/index.ts", type: "commit_file", size: 256 },
+      ];
+      mswServer.use(
+        http.get(
+          `${BASE_URL}/repositories/test-workspace/my-repo/src/main/src`,
+          () =>
+            HttpResponse.json({
+              values: entries,
+              page: 1,
+              size: 1,
+              pagelen: 10,
+            } satisfies PaginatedResponse<DirectoryEntry>)
+        )
+      );
+
+      const client = new BitbucketClient(mockConfig);
+      const result = await client.get<PaginatedResponse<DirectoryEntry>>(
+        "/repositories/test-workspace/my-repo/src/main/src"
+      );
+
+      expect(result.values).toHaveLength(1);
+    });
+
+    it("handles empty directory", () => {
+      expect(formatDirectoryListing([])).toBe("Empty directory.");
+    });
+
+    it("formatDirectoryEntry formats directory entry", () => {
+      expect(formatDirectoryEntry({ path: "src", type: "commit_directory" })).toBe(
+        "[dir] src"
+      );
+    });
+
+    it("formatDirectoryEntry formats file entry with size", () => {
+      expect(
+        formatDirectoryEntry({ path: "app.ts", type: "commit_file", size: 100 })
+      ).toBe("[file] app.ts (100 bytes)");
+    });
+
+    it("formatDirectoryEntry formats file entry without size", () => {
+      expect(
+        formatDirectoryEntry({ path: "app.ts", type: "commit_file" })
+      ).toBe("[file] app.ts");
+    });
+  });
+
+  describe("bb_search_code", () => {
+    const mockSearchResult: CodeSearchResult = {
+      type: "code_search_result",
+      content_match_count: 2,
+      content_matches: [
+        {
+          lines: [
+            {
+              line: 10,
+              segments: [
+                { text: "const " },
+                { text: "hello", match: true },
+                { text: " = 'world';" },
+              ],
+            },
+          ],
+        },
+      ],
+      path_matches: [{ text: "src/app.ts" }],
+      file: { path: "src/app.ts", type: "commit_file" },
+    };
+
+    it("searches code in a specific repository", async () => {
+      mswServer.use(
+        http.get(
+          `${BASE_URL}/repositories/test-workspace/my-repo/search/code`,
+          ({ request }) => {
+            const url = new URL(request.url);
+            expect(url.searchParams.get("search_query")).toBe("hello");
+            return HttpResponse.json({
+              values: [mockSearchResult],
+              page: 1,
+              size: 1,
+              pagelen: 10,
+            } satisfies PaginatedResponse<CodeSearchResult>);
+          }
+        )
+      );
+
+      const client = new BitbucketClient(mockConfig);
+      const result = await client.get<PaginatedResponse<CodeSearchResult>>(
+        "/repositories/test-workspace/my-repo/search/code",
+        { search_query: "hello" }
+      );
+
+      expect(result.values).toHaveLength(1);
+      expect(result.values[0].file.path).toBe("src/app.ts");
+    });
+
+    it("searches code workspace-wide", async () => {
+      mswServer.use(
+        http.get(
+          `${BASE_URL}/workspaces/test-workspace/search/code`,
+          ({ request }) => {
+            const url = new URL(request.url);
+            expect(url.searchParams.get("search_query")).toBe("TODO");
+            return HttpResponse.json({
+              values: [mockSearchResult],
+              page: 1,
+              size: 1,
+              pagelen: 10,
+            } satisfies PaginatedResponse<CodeSearchResult>);
+          }
+        )
+      );
+
+      const client = new BitbucketClient(mockConfig);
+      const result = await client.get<PaginatedResponse<CodeSearchResult>>(
+        "/workspaces/test-workspace/search/code",
+        { search_query: "TODO" }
+      );
+
+      expect(result.values).toHaveLength(1);
+    });
+
+    it("formatCodeSearchResult formats result with match lines", () => {
+      const formatted = formatCodeSearchResult(mockSearchResult);
+      expect(formatted).toContain("src/app.ts (2 matches)");
+      expect(formatted).toContain("L10: const hello = 'world';");
+    });
+
+    it("formatCodeSearchResults handles empty results", () => {
+      expect(formatCodeSearchResults([])).toBe("No code matches found.");
+    });
+
+    it("formatCodeSearchResults formats multiple results", () => {
+      const results = [
+        mockSearchResult,
+        {
+          ...mockSearchResult,
+          file: { path: "src/utils.ts", type: "commit_file" },
+          content_match_count: 1,
+        },
+      ];
+      const formatted = formatCodeSearchResults(results);
+      expect(formatted).toContain("src/app.ts");
+      expect(formatted).toContain("src/utils.ts");
     });
   });
 

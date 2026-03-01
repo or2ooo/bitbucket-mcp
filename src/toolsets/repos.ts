@@ -7,18 +7,24 @@ import type {
   Branch,
   Commit,
   PaginatedResponse,
+  DirectoryEntry,
+  CodeSearchResult,
 } from "../bitbucket/types.js";
 import {
   formatRepositoryList,
   formatRepository,
+  formatBranch,
   formatBranchList,
   formatCommitList,
+  formatDirectoryListing,
+  formatCodeSearchResults,
 } from "../formatting.js";
 import {
   resolveWorkspace,
   assertWorkspaceAllowed,
   assertRepoAllowed,
   assertNotReadonly,
+  assertConfirmed,
 } from "../safety.js";
 
 export function registerRepoTools(
@@ -282,6 +288,199 @@ export function registerRepoTools(
             {
               type: "text" as const,
               text: `Successfully committed ${Object.keys(args.files).length} file(s) to ${args.branch}`,
+            },
+          ],
+        };
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : String(error);
+        return {
+          content: [{ type: "text" as const, text: `Error: ${message}` }],
+          isError: true,
+        };
+      }
+    }
+  );
+
+  server.tool(
+    "bb_create_branch",
+    "Create a new branch in a Bitbucket repository",
+    {
+      workspace: z
+        .string()
+        .optional()
+        .describe("Bitbucket workspace slug (uses default if not set)"),
+      repo_slug: z.string().describe("Repository slug"),
+      name: z.string().describe("New branch name"),
+      target_hash: z
+        .string()
+        .describe("Commit hash to branch from"),
+    },
+    async (args) => {
+      try {
+        assertNotReadonly(config);
+        const ws = resolveWorkspace(config, args.workspace);
+        assertRepoAllowed(config, ws, args.repo_slug);
+        const branch = await client.post<Branch>(
+          `/repositories/${ws}/${args.repo_slug}/refs/branches`,
+          { name: args.name, target: { hash: args.target_hash } }
+        );
+        return {
+          content: [
+            { type: "text" as const, text: formatBranch(branch) },
+          ],
+        };
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : String(error);
+        return {
+          content: [{ type: "text" as const, text: `Error: ${message}` }],
+          isError: true,
+        };
+      }
+    }
+  );
+
+  server.tool(
+    "bb_delete_branch",
+    "Delete a branch from a Bitbucket repository (destructive action, requires confirmation)",
+    {
+      workspace: z
+        .string()
+        .optional()
+        .describe("Bitbucket workspace slug (uses default if not set)"),
+      repo_slug: z.string().describe("Repository slug"),
+      name: z.string().describe("Branch name to delete"),
+      confirm: z
+        .boolean()
+        .describe("Must be true to confirm this destructive action"),
+    },
+    async (args) => {
+      try {
+        assertNotReadonly(config);
+        assertConfirmed(args.confirm, "delete branch");
+        const ws = resolveWorkspace(config, args.workspace);
+        assertRepoAllowed(config, ws, args.repo_slug);
+        await client.del(
+          `/repositories/${ws}/${args.repo_slug}/refs/branches/${encodeURIComponent(args.name)}`
+        );
+        return {
+          content: [
+            {
+              type: "text" as const,
+              text: `Branch "${args.name}" deleted successfully.`,
+            },
+          ],
+        };
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : String(error);
+        return {
+          content: [{ type: "text" as const, text: `Error: ${message}` }],
+          isError: true,
+        };
+      }
+    }
+  );
+
+  server.tool(
+    "bb_list_directory",
+    "List the contents of a directory in a Bitbucket repository",
+    {
+      workspace: z
+        .string()
+        .optional()
+        .describe("Bitbucket workspace slug (uses default if not set)"),
+      repo_slug: z.string().describe("Repository slug"),
+      path: z
+        .string()
+        .optional()
+        .describe("Directory path (defaults to repository root)"),
+      revision: z
+        .string()
+        .optional()
+        .describe("Branch name, tag, or commit hash (defaults to HEAD)"),
+      page: z.number().optional().describe("Page number for pagination"),
+      pagelen: z
+        .number()
+        .max(100)
+        .optional()
+        .describe("Number of results per page (max 100)"),
+    },
+    async (args) => {
+      try {
+        const ws = resolveWorkspace(config, args.workspace);
+        assertRepoAllowed(config, ws, args.repo_slug);
+        const revision = args.revision || "HEAD";
+        const dirPath = args.path ? `/${args.path}` : "";
+        const response = await client.get<PaginatedResponse<DirectoryEntry>>(
+          `/repositories/${ws}/${args.repo_slug}/src/${revision}${dirPath}`,
+          { page: args.page, pagelen: args.pagelen }
+        );
+        return {
+          content: [
+            {
+              type: "text" as const,
+              text: formatDirectoryListing(response.values),
+            },
+          ],
+        };
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : String(error);
+        return {
+          content: [{ type: "text" as const, text: `Error: ${message}` }],
+          isError: true,
+        };
+      }
+    }
+  );
+
+  server.tool(
+    "bb_search_code",
+    "Search for code in a Bitbucket workspace or repository",
+    {
+      workspace: z
+        .string()
+        .optional()
+        .describe("Bitbucket workspace slug (uses default if not set)"),
+      repo_slug: z
+        .string()
+        .optional()
+        .describe(
+          "Repository slug (searches workspace-wide if not provided)"
+        ),
+      query: z.string().describe("Search query string"),
+      page: z.number().optional().describe("Page number for pagination"),
+      pagelen: z
+        .number()
+        .max(100)
+        .optional()
+        .describe("Number of results per page (max 100)"),
+    },
+    async (args) => {
+      try {
+        const ws = resolveWorkspace(config, args.workspace);
+        if (args.repo_slug) {
+          assertRepoAllowed(config, ws, args.repo_slug);
+        } else {
+          assertWorkspaceAllowed(config, ws);
+        }
+        const basePath = args.repo_slug
+          ? `/repositories/${ws}/${args.repo_slug}/search/code`
+          : `/workspaces/${ws}/search/code`;
+        const response = await client.get<
+          PaginatedResponse<CodeSearchResult>
+        >(basePath, {
+          search_query: args.query,
+          page: args.page,
+          pagelen: args.pagelen,
+        });
+        return {
+          content: [
+            {
+              type: "text" as const,
+              text: formatCodeSearchResults(response.values),
             },
           ],
         };

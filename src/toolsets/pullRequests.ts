@@ -288,7 +288,7 @@ export function registerPullRequestTools(
   // 7. Add a comment to a pull request
   server.tool(
     "bb_add_pull_request_comment",
-    "Add a comment to a pull request, optionally as an inline comment on a specific file and line",
+    "Add a comment to a pull request, optionally as an inline comment on a specific file and line. Use parent_id to create a threaded reply to an existing comment.",
     {
       workspace: z
         .string()
@@ -305,6 +305,10 @@ export function registerPullRequestTools(
         .number()
         .optional()
         .describe("Line number for inline comment (the 'to' line)"),
+      parent_id: z
+        .number()
+        .optional()
+        .describe("Parent comment ID to create a threaded reply"),
     },
     async (args) => {
       try {
@@ -319,6 +323,9 @@ export function registerPullRequestTools(
             path: args.inline_path,
             to: args.inline_line,
           };
+        }
+        if (args.parent_id) {
+          body.parent = { id: args.parent_id };
         }
         const comment = await client.post<PullRequestComment>(
           `/repositories/${ws}/${args.repo_slug}/pullrequests/${args.pr_id}/comments`,
@@ -474,7 +481,59 @@ export function registerPullRequestTools(
     }
   );
 
-  // 11. Decline a pull request
+  // 11. Update a pull request
+  server.tool(
+    "bb_update_pull_request",
+    "Update a pull request's title, description, or reviewers",
+    {
+      workspace: z
+        .string()
+        .optional()
+        .describe("Bitbucket workspace slug (uses default if not provided)"),
+      repo_slug: z.string().describe("Repository slug"),
+      pr_id: z.number().describe("Pull request ID"),
+      title: z.string().optional().describe("New pull request title"),
+      description: z
+        .string()
+        .optional()
+        .describe("New pull request description"),
+      reviewers: z
+        .array(z.string())
+        .optional()
+        .describe("New list of reviewer UUIDs (replaces existing reviewers)"),
+    },
+    async (args) => {
+      try {
+        assertNotReadonly(config);
+        const ws = resolveWorkspace(config, args.workspace);
+        assertRepoAllowed(config, ws, args.repo_slug);
+        const body: Record<string, unknown> = {};
+        if (args.title !== undefined) body.title = args.title;
+        if (args.description !== undefined)
+          body.description = args.description;
+        if (args.reviewers)
+          body.reviewers = args.reviewers.map((uuid) => ({ uuid }));
+        const pr = await client.put<PullRequest>(
+          `/repositories/${ws}/${args.repo_slug}/pullrequests/${args.pr_id}`,
+          body
+        );
+        return {
+          content: [
+            { type: "text" as const, text: formatPullRequest(pr) },
+          ],
+        };
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : String(error);
+        return {
+          content: [{ type: "text" as const, text: `Error: ${message}` }],
+          isError: true,
+        };
+      }
+    }
+  );
+
+  // 12. Decline a pull request
   server.tool(
     "bb_decline_pull_request",
     "Decline a pull request (destructive action, requires confirmation)",

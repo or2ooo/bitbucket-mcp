@@ -12,6 +12,8 @@ import type {
   IssueComment,
   Pipeline,
   Participant,
+  DirectoryEntry,
+  CodeSearchResult,
 } from "./bitbucket/types.js";
 
 export function formatUser(user: User): string {
@@ -187,4 +189,34 @@ export function formatPipeline(pipeline: Pipeline): string {
 export function formatPipelineList(pipelines: Pipeline[]): string {
   if (pipelines.length === 0) return "No pipelines found.";
   return pipelines.map((p) => `- ${formatPipeline(p)}`).join("\n");
+}
+
+export function formatDirectoryEntry(entry: DirectoryEntry): string {
+  if (entry.type === "commit_directory") {
+    return `[dir] ${entry.path}`;
+  }
+  const size = entry.size !== undefined ? ` (${entry.size} bytes)` : "";
+  return `[file] ${entry.path}${size}`;
+}
+
+export function formatDirectoryListing(entries: DirectoryEntry[]): string {
+  if (entries.length === 0) return "Empty directory.";
+  return entries.map((e) => formatDirectoryEntry(e)).join("\n");
+}
+
+export function formatCodeSearchResult(result: CodeSearchResult): string {
+  const lines: string[] = [];
+  lines.push(`${result.file.path} (${result.content_match_count} matches)`);
+  for (const match of result.content_matches) {
+    for (const line of match.lines) {
+      const text = line.segments.map((s) => s.text).join("");
+      lines.push(`  L${line.line}: ${text}`);
+    }
+  }
+  return lines.join("\n");
+}
+
+export function formatCodeSearchResults(results: CodeSearchResult[]): string {
+  if (results.length === 0) return "No code matches found.";
+  return results.map((r) => formatCodeSearchResult(r)).join("\n");
 }
