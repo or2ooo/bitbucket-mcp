@@ -347,7 +347,87 @@ export function registerPullRequestTools(
     }
   );
 
-  // 8. Approve a pull request
+  // 8. Resolve a pull request comment
+  server.tool(
+    "bb_resolve_pull_request_comment",
+    "Resolve a comment thread on a pull request",
+    {
+      workspace: z
+        .string()
+        .optional()
+        .describe("Bitbucket workspace slug (uses default if not provided)"),
+      repo_slug: z.string().describe("Repository slug"),
+      pr_id: z.number().describe("Pull request ID"),
+      comment_id: z.number().describe("Comment ID to resolve"),
+    },
+    async (args) => {
+      try {
+        assertNotReadonly(config);
+        const ws = resolveWorkspace(config, args.workspace);
+        assertRepoAllowed(config, ws, args.repo_slug);
+        await client.post(
+          `/repositories/${ws}/${args.repo_slug}/pullrequests/${args.pr_id}/comments/${args.comment_id}/resolve`
+        );
+        return {
+          content: [
+            {
+              type: "text" as const,
+              text: `Comment #${args.comment_id} on PR #${args.pr_id} resolved.`,
+            },
+          ],
+        };
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : String(error);
+        return {
+          content: [{ type: "text" as const, text: `Error: ${message}` }],
+          isError: true,
+        };
+      }
+    }
+  );
+
+  // 9. Unresolve a pull request comment
+  server.tool(
+    "bb_unresolve_pull_request_comment",
+    "Reopen a resolved comment thread on a pull request",
+    {
+      workspace: z
+        .string()
+        .optional()
+        .describe("Bitbucket workspace slug (uses default if not provided)"),
+      repo_slug: z.string().describe("Repository slug"),
+      pr_id: z.number().describe("Pull request ID"),
+      comment_id: z.number().describe("Comment ID to unresolve"),
+    },
+    async (args) => {
+      try {
+        assertNotReadonly(config);
+        const ws = resolveWorkspace(config, args.workspace);
+        assertRepoAllowed(config, ws, args.repo_slug);
+        await client.del(
+          `/repositories/${ws}/${args.repo_slug}/pullrequests/${args.pr_id}/comments/${args.comment_id}/resolve`
+        );
+        return {
+          content: [
+            {
+              type: "text" as const,
+              text: `Comment #${args.comment_id} on PR #${args.pr_id} unresolved.`,
+            },
+          ],
+        };
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : String(error);
+        return {
+          content: [{ type: "text" as const, text: `Error: ${message}` }],
+          isError: true,
+        };
+      }
+    }
+  );
+
+  // 10. Approve a pull request
   server.tool(
     "bb_approve_pull_request",
     "Approve a pull request",
@@ -386,7 +466,7 @@ export function registerPullRequestTools(
     }
   );
 
-  // 9. Request changes on a pull request
+  // 11. Request changes on a pull request
   server.tool(
     "bb_request_changes_pull_request",
     "Request changes on a pull request",
@@ -425,7 +505,7 @@ export function registerPullRequestTools(
     }
   );
 
-  // 10. Merge a pull request
+  // 12. Merge a pull request
   server.tool(
     "bb_merge_pull_request",
     "Merge a pull request (destructive action, requires confirmation)",
@@ -481,7 +561,7 @@ export function registerPullRequestTools(
     }
   );
 
-  // 11. Update a pull request
+  // 13. Update a pull request
   server.tool(
     "bb_update_pull_request",
     "Update a pull request's title, description, or reviewers",
@@ -533,7 +613,7 @@ export function registerPullRequestTools(
     }
   );
 
-  // 12. Decline a pull request
+  // 14. Decline a pull request
   server.tool(
     "bb_decline_pull_request",
     "Decline a pull request (destructive action, requires confirmation)",
