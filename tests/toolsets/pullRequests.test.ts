@@ -339,6 +339,43 @@ describe("Pull Request API calls via BitbucketClient", () => {
     expect(result.inline?.path).toBe("src/app.ts");
   });
 
+  it("resolves a pull request comment", async () => {
+    mswServer.use(
+      http.post(
+        `${BASE_URL}/repositories/test-workspace/my-repo/pullrequests/1/comments/10/resolve`,
+        () =>
+          HttpResponse.json({
+            user: {
+              display_name: "Test User",
+              uuid: "{user-uuid}",
+              nickname: "testuser",
+              type: "user",
+            },
+            created_on: "2025-01-05T00:00:00Z",
+          })
+      )
+    );
+
+    const result = await client.post(
+      "/repositories/test-workspace/my-repo/pullrequests/1/comments/10/resolve"
+    );
+    expect(result).toBeDefined();
+  });
+
+  it("unresolves a pull request comment", async () => {
+    mswServer.use(
+      http.delete(
+        `${BASE_URL}/repositories/test-workspace/my-repo/pullrequests/1/comments/10/resolve`,
+        () => new HttpResponse(null, { status: 204 })
+      )
+    );
+
+    const result = await client.del(
+      "/repositories/test-workspace/my-repo/pullrequests/1/comments/10/resolve"
+    );
+    expect(result).toBeDefined();
+  });
+
   it("approves a pull request", async () => {
     mswServer.use(
       http.post(
